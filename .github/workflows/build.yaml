@@ -1,36 +1,38 @@
-name: Docker Build and Release
-on: [ push ]
-env:
-  #### An dieser Stelle müssen eure persönlichen Umgebungsvariablen eingetragen werden
-  # Tipp: Die Token/der API-Key werden als Secrets in den Repository-Settings eingetragen und hier referenziert.
-  # Test
-  GITHUB_ACCESSTOKEN: ${{ secrets.GITHUB_ACCESSTOKEN }}
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
 jobs:
-  compile:
-    name: Compile
+  build-and-push:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
         with:
-           registry: ghcr.io
-           username: bodesg24
-           password: ${{ secrets.GHCR_TOKEN }}
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: bodesg24
+          password: ${{ secrets.GHCR_TOKEN }}
+
       - name: Build Docker Image
-        run: |
-          docker build -t ghcr.io/bodesg24/pet-clinic:latest .
+        run: docker build -t ghcr.io/bodesg24/pet-clinic:latest .
+
       - name: Push Docker Image
-        run: |
-           docker push ghcr.io/bodesg24/pet-clinic:latest
-
-      - name: Setup Java
-        uses: actions/setup-java@v2
-        with:
-          distribution: temurin
-          java-version: 11
-
-      - name: Compile, build and push
-        run: |
-          #### AUFGABE COMPILE, DOCKER BUILD UND PUSH
-            # hier ist Platz für maven package und docker build
+        run: docker push ghcr.io/bodesg24/pet-clinic:latest
